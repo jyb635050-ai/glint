@@ -1,0 +1,9 @@
+{
+  "name": "glint-judge",
+  "private": true,
+  "type": "module",
+  "description": "拾光 Glint 判卷专用依赖（冻结，与网站无关）。安装：npm ci --prefix tools/judge",
+  "dependencies": {
+    "playwright": "1.62.1"
+  }
+}

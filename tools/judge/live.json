@@ -1,0 +1,12 @@
+{
+  "video": {
+    "youtube": ["https://www.youtube.com/watch?v=jNQXAC9IVRw", "https://www.youtube.com/watch?v=BaW_jenozKc"],
+    "bilibili": ["https://www.bilibili.com/video/BV1GJ411x7h7", "https://www.bilibili.com/video/BV13x41117TL"],
+    "tiktok": ["https://www.tiktok.com/@hankgreen1/video/7047596209028074758", "https://www.tiktok.com/@leenabhushan/video/6748451240264420610"],
+    "instagram": ["https://www.instagram.com/reel/Chunk8-jurw/", "https://www.instagram.com/p/Bqxp0VSBgJg/"]
+  },
+  "images": [
+    { "platform": "tiktok", "url": "https://www.tiktok.com/@hullcity/photo/7553302113757990166" },
+    { "platform": "instagram", "url": "https://www.instagram.com/p/BqvsDleB3lV/" }
+  ]
+}
