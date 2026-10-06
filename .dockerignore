@@ -1,0 +1,7 @@
+.venv
+.git
+secrets
+tools
+node_modules
+__pycache__
+*.md
