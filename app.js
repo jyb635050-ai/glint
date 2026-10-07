@@ -126,7 +126,7 @@
   function card(d, it) {
     const el = $('#tpl-item').content.firstElementChild.cloneNode(true);
     el.dataset.item = it.kind;
-    const kinds = it.kind === 'video' ? (it.thumbnail ? ['video', 'audio', 'image'] : ['video', 'audio']) : it.kind === 'audio' ? ['audio'] : ['image'];
+    const kinds = it.kind === 'video' ? ['video', it.audio !== false && 'audio', it.thumbnail && 'image'].filter(Boolean) : it.kind === 'audio' ? ['audio'] : ['image'];
     const st = { kind: kinds[0], quality: it.qualities ? (it.qualities.find((q) => q <= 1080) || it.qualities[it.qualities.length - 1]) : null, format: FMT[kinds[0]][0] };
     const img = $('img', el), thumb = $('.thumb', el);
     if (it.thumbnail) { img.src = withT(API + it.thumbnail); img.onerror = () => thumb.classList.add('empty'); } else thumb.classList.add('empty');
