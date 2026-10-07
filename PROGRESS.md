@@ -13,3 +13,4 @@
 - 启动.bat：中文写在 .bat 里会被 cmd 拆坏，改成批处理只用英文、中文提示由 run.py --tips 打印；口令存 secrets/access-code.txt（不进仓库）
 - 任务 2：本机连不上四个平台，--live 6 个 🟡（见 BLOCKED.md 1）
 - 任务 3：无 HF_TOKEN，备好 Dockerfile + deploy/hf_deploy.py（见 BLOCKED.md 2）
+- 2026-10-07 HF 免费账号建 Docker Space 报 402（要 PRO），领导改判 GitHub Pages + 家里电脑 + Cloudflare 隧道：后端加跨域（只放行 jyb635050-ai.github.io）和令牌登录（Bearer / ?t=，同源仍用 cookie）；run.py --tunnel 起 cloudflared 并打印带 #api=&code= 的专属链接和二维码；页面资源改相对路径（放 /glint/ 子目录下 /app.js 会 404）；gh-pages 分支发布 static/。公司电脑实测整条链路通。本地判卷仍 41/41

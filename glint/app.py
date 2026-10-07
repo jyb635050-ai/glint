@@ -23,13 +23,29 @@ def token():
 
 
 def client_ip(req: Request):
+    if config.TRUST_PROXY and req.headers.get('cf-connecting-ip'):
+        return req.headers['cf-connecting-ip'].strip()
     if config.TRUST_PROXY and req.headers.get('x-forwarded-for'):
         return req.headers['x-forwarded-for'].split(',')[0].strip()
     return req.client.host if req.client else '?'
 
 
 def authed(req: Request):
-    return not config.ACCESS_CODE or hmac.compare_digest(req.cookies.get('glint', ''), token())
+    """同源用 cookie；从 GitHub Pages 跨域来的用 Authorization: Bearer，下载链接和缩略图用 ?t=。"""
+    if not config.ACCESS_CODE:
+        return True
+    auth = req.headers.get('authorization', '')
+    got = req.cookies.get('glint') or (auth[7:] if auth.lower().startswith('bearer ') else '') or req.query_params.get('t', '')
+    return hmac.compare_digest(got, token())
+
+
+def cors_headers(req: Request):
+    origin = req.headers.get('origin')
+    if origin and origin in config.CORS_ORIGINS:
+        return {'Access-Control-Allow-Origin': origin, 'Vary': 'Origin', 'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Max-Age': '600',
+                'Access-Control-Expose-Headers': 'Content-Disposition'}
+    return {}
 
 
 @app.exception_handler(Fail)
@@ -45,12 +61,17 @@ async def _boom(_, e: Exception):
 @app.middleware('http')
 async def gate(request: Request, call_next):
     p = request.url.path
+    cors = cors_headers(request)
+    if request.method == 'OPTIONS' and p.startswith('/api/'):
+        return Response(status_code=204 if cors else 403, headers=cors)
     if p.startswith('/api/') and p not in ('/api/health', '/api/login') and not authed(request):
-        return JSONResponse({'error': {'code': 'auth_required', 'message': '请先输入访问口令'}}, status_code=401)
+        return JSONResponse({'error': {'code': 'auth_required', 'message': '请先输入访问口令'}}, status_code=401, headers=cors)
     try:
         resp = await call_next(request)
     except Fail as e:
-        return JSONResponse({'error': {'code': e.code, 'message': e.message}}, status_code=e.status)
+        resp = JSONResponse({'error': {'code': e.code, 'message': e.message}}, status_code=e.status)
+    for k, v in cors.items():
+        resp.headers[k] = v
     if not p.startswith('/api/'):
         resp.headers.setdefault('Cache-Control', 'no-cache')
     resp.headers.setdefault('X-Content-Type-Options', 'nosniff')
@@ -86,7 +107,7 @@ async def login(req: Request):
     data = await body_json(req)
     code = str(data.get('code', ''))
     if config.ACCESS_CODE and hmac.compare_digest(code.encode(), config.ACCESS_CODE.encode()):
-        r = JSONResponse({'ok': True})
+        r = JSONResponse({'ok': True, 'token': token()})
         r.set_cookie('glint', token(), max_age=60 * 60 * 24 * 90, httponly=True, samesite='lax',
                      secure=req.url.scheme == 'https' or req.headers.get('x-forwarded-proto') == 'https')
         return r

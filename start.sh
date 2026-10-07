@@ -7,4 +7,5 @@ command -v ffmpeg >/dev/null || { echo "没找到 ffmpeg，Mac 上请运行：br
 .venv/bin/python -m pip install -q --disable-pip-version-check -r requirements.txt
 .venv/bin/python -m pip install -q --disable-pip-version-check -U "yt-dlp[default]"
 echo "手机连同一个 Wi-Fi，打开下面的「手机网址」并输入口令。按 Ctrl+C 停止。"
-exec .venv/bin/python run.py --lan --port 8787 --open
+TUN=""; command -v cloudflared >/dev/null && TUN="--tunnel"
+exec .venv/bin/python run.py --lan --port 8787 --open $TUN

@@ -6,5 +6,9 @@ where ffmpeg >nul 2>nul || (echo [Glint] ffmpeg not found. Install it first:  wi
 if not exist ".venv\Scripts\python.exe" python -m venv .venv
 ".venv\Scripts\python.exe" -m pip install -q --disable-pip-version-check -r requirements.txt
 ".venv\Scripts\python.exe" -m pip install -q --disable-pip-version-check -U "yt-dlp[default]"
-".venv\Scripts\python.exe" run.py --lan --port 8787 --open --tips
+set TUN=
+where cloudflared >nul 2>nul && set TUN=--tunnel
+if exist "%LOCALAPPDATA%\Microsoft\WinGet\Links\cloudflared.exe" set TUN=--tunnel
+if "%TUN%"=="" echo [Glint] Tip: install cloudflared to use it outside home:  winget install Cloudflare.cloudflared
+".venv\Scripts\python.exe" run.py --lan --port 8787 --open --tips %TUN%
 pause

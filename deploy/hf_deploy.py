@@ -1,4 +1,4 @@
-"""把拾光 Glint 部署到 Hugging Face Docker Space。
+"""把拾光 Glint 部署到 Hugging Face Docker Space（2026-10 实测：免费账号建 Docker Space 会报 402，需要 PRO）。
 
 用法（先 pip install huggingface_hub，并设好环境变量 HF_TOKEN = 有写权限的令牌）：
     python deploy/hf_deploy.py [--space glint]

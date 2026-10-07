@@ -9,6 +9,8 @@
       retry: '再下一次', empty: '请先粘贴链接', badCode: '口令不对', net: '网络出错了，请重试', items: (n) => `${n} 项`,
       h: { mp4: '最兼容，手机相册直接能放', webm: '体积小，网页播放友好', mkv: '原画封装，不转码最快', mp3: '通用音乐格式', m4a: '苹果设备友好', opus: '小体积高音质', flac: '无损', wav: '无压缩原始音频', jpg: '通用、体积小', png: '无损', webp: '新格式、更小' },
       slow: '高清转 MP4 需要重新编码，长视频会慢一些',
+      offTitle: '还没连上你的电脑', offWhy: '下载在你家电脑上进行。', offNone: '在家里电脑双击「启动.bat」，然后打开窗口里打印的链接（或扫二维码），这里就会自动连上。',
+      offDown: '你家电脑上的拾光好像没开着，或者外网地址已经换了。重新启动后，打开新打印的链接即可。', apiPh: '也可以把窗口里的链接粘贴到这里', connect: '连接',
     },
     en: {
       brand: 'Glint', h1: 'Keep the moments<br class="m"> you love', sub: 'Paste a link or a whole share message, pick quality and format, save video, music and images.',
@@ -18,6 +20,8 @@
       retry: 'Download again', empty: 'Paste a link first', badCode: 'Wrong code', net: 'Network error, please retry', items: (n) => `${n} item${n > 1 ? 's' : ''}`,
       h: { mp4: 'Plays everywhere', webm: 'Small, web friendly', mkv: 'Original streams, fastest', mp3: 'Universal', m4a: 'Great on Apple devices', opus: 'Small & clear', flac: 'Lossless', wav: 'Uncompressed', jpg: 'Small & universal', png: 'Lossless', webp: 'Modern & small' },
       slow: 'HD to MP4 needs re-encoding; long videos take a while',
+      offTitle: 'Not connected to your computer', offWhy: 'Downloads run on your home computer.', offNone: 'Start Glint on your home computer, then open the link it prints (or scan the QR code).',
+      offDown: 'Glint on your computer seems to be off, or its address changed. Restart it and open the new link.', apiPh: 'Or paste the link here', connect: 'Connect',
     },
   };
   const FMT = { video: ['mp4', 'webm', 'mkv'], audio: ['mp3', 'm4a', 'opus', 'flac', 'wav'], image: ['jpg', 'png', 'webp'] };
@@ -61,8 +65,16 @@
   const showErr = (m) => { err.textContent = m; err.classList.remove('hide'); };
   const hideErr = () => err.classList.add('hide');
 
+  // 后端在哪：同源部署时为空；放在 GitHub Pages 上时用链接 #api=… 记下来的地址（存在本机）
+  const REMOTE = /\.github\.io$/.test(location.hostname);
+  let API = REMOTE ? (store.get('glint.api') || '') : '';
+  let TOKEN = REMOTE ? (store.get('glint.token') || '') : '';
+  const withT = (u) => (TOKEN ? u + (u.includes('?') ? '&' : '?') + 't=' + encodeURIComponent(TOKEN) : u);
   async function api(path, body) {
-    const r = await fetch(path, body ? { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify(body) } : { headers: { accept: 'application/json' } });
+    const headers = { accept: 'application/json' };
+    if (TOKEN) headers.authorization = 'Bearer ' + TOKEN;
+    if (body) headers['content-type'] = 'application/json';
+    const r = await fetch(API + path, body ? { method: 'POST', headers, body: JSON.stringify(body) } : { headers });
     let j = {}; try { j = await r.json(); } catch {}
     return { status: r.status, j };
   }
@@ -73,7 +85,7 @@
   $('#gate').addEventListener('submit', async (e) => {
     e.preventDefault(); hideErr();
     const r = await api('/api/login', { code: $('#code').value.trim() });
-    if (r.status === 200) { lock(false); $('#code').value = ''; $('#url').focus(); } else showErr(r.status === 401 ? t('badCode') : msg(r));
+    if (r.status === 200) { if (REMOTE && r.j.token) { TOKEN = r.j.token; store.set('glint.token', TOKEN); } lock(false); $('#code').value = ''; $('#url').focus(); } else showErr(r.status === 401 ? t('badCode') : msg(r));
   });
 
   // 解析
@@ -114,10 +126,10 @@
   function card(d, it) {
     const el = $('#tpl-item').content.firstElementChild.cloneNode(true);
     el.dataset.item = it.kind;
-    const kinds = it.kind === 'video' ? (it.thumbnail ? ['video', 'audio', 'image'] : ['video', 'audio']) : it.kind === 'audio' ? ['audio'] : ['image'];
+    const kinds = it.kind === 'video' ? ['video', it.audio !== false && 'audio', it.thumbnail && 'image'].filter(Boolean) : it.kind === 'audio' ? ['audio'] : ['image'];
     const st = { kind: kinds[0], quality: it.qualities ? (it.qualities.find((q) => q <= 1080) || it.qualities[it.qualities.length - 1]) : null, format: FMT[kinds[0]][0] };
     const img = $('img', el), thumb = $('.thumb', el);
-    if (it.thumbnail) { img.src = it.thumbnail; img.onerror = () => thumb.classList.add('empty'); } else thumb.classList.add('empty');
+    if (it.thumbnail) { img.src = withT(API + it.thumbnail); img.onerror = () => thumb.classList.add('empty'); } else thumb.classList.add('empty');
     if (it.kind === 'image') { thumb.style.aspectRatio = it.width && it.height ? `${Math.max(.6, Math.min(1.9, it.width / it.height))}` : '1'; img.style.objectFit = 'contain'; }
     $('.dur', el).textContent = it.duration ? fmtDur(it.duration) : '';
     $('.dims', el).textContent = it.width ? `${it.width}×${it.height}` : '';
@@ -158,7 +170,7 @@
           if (s.state === 'error') throw new Error(s.error.message);
           setBtn(`${t('working')} ${Math.round((s.progress || 0) * 100)}%`, Math.max(0.04, s.progress || 0));
         }
-        const a = document.createElement('a'); a.href = s.file; a.download = s.name || ''; document.body.appendChild(a); a.click(); a.remove();
+        const a = document.createElement('a'); a.href = withT(API + s.file); a.download = s.name || ''; document.body.appendChild(a); a.click(); a.remove();
         btn.classList.add('done'); setBtn(t('saved'), 1);
         setTimeout(() => { btn.classList.remove('done'); setBtn(t('retry')); }, 2600);
       } catch (e) { showErr(e.message || t('net')); setBtn(t('download')); } finally { btn.classList.remove('busy'); }
@@ -168,5 +180,50 @@
   }
 
   applyLang();
-  api('/api/me').then((r) => { if (r.status === 401) lock(true); }).catch(() => {});
+  // GitHub Pages 版：先找后端
+  const offline = $('#offline');
+  function needBackend(on, why) {
+    offline.classList.toggle('hide', !on);
+    $('#search').classList.toggle('hide', on); $('#sites').classList.toggle('hide', on); $('#gate').classList.add('hide');
+    if (on) $('#offmsg').textContent = why || t('offWhy');
+  }
+  async function connect() {
+    if (!REMOTE) return true;
+    if (!API) { needBackend(true, t('offNone')); return false; }
+    try {
+      const r = await fetch(API + '/api/health', { cache: 'no-store' });
+      if (!r.ok) throw new Error();
+      needBackend(false); return true;
+    } catch { needBackend(true, t('offDown')); return false; }
+  }
+  offline.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = $('#apiurl').value.trim();
+    const hash = text.includes('#') ? new URLSearchParams(text.split('#')[1]) : null;
+    const m = hash && hash.get('api') ? [hash.get('api')] : /https?:\/\/[^\s#]+/.exec(text);
+    if (!m) return;
+    API = m[0].replace(/\/+$/, ''); store.set('glint.api', API); TOKEN = ''; store.set('glint.token', '');
+    if (!(await connect())) return;
+    if (hash && hash.get('code')) {
+      const r = await api('/api/login', { code: hash.get('code') }).catch(() => ({ status: 0, j: {} }));
+      if (r.status === 200 && r.j.token) { TOKEN = r.j.token; store.set('glint.token', TOKEN); }
+    }
+    start();
+  });
+  async function start() {
+    const r = await api('/api/me').catch(() => ({ status: 0 }));
+    if (r.status === 401) lock(true);
+  }
+  (async () => {
+    const h = new URLSearchParams(location.hash.slice(1));
+    if (REMOTE && h.get('api')) {
+      API = h.get('api').replace(/\/+$/, ''); store.set('glint.api', API);
+      history.replaceState(null, '', location.pathname + location.search);
+      if (await connect() && h.get('code')) {
+        const r = await api('/api/login', { code: h.get('code') }).catch(() => ({ status: 0, j: {} }));
+        if (r.status === 200 && r.j.token) { TOKEN = r.j.token; store.set('glint.token', TOKEN); }
+      }
+    } else if (!(await connect())) return;
+    start();
+  })();
 })();

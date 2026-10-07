@@ -26,14 +26,25 @@
 
 只在本机用、不需要手机访问：`python run.py`（只听 127.0.0.1，不要口令）。
 
-## 部署到云端（Hugging Face 免费 Docker Space）
+## 在外面也能用：GitHub Pages 网页 + 家里电脑
+
+网页放在 **https://jyb635050-ai.github.io/glint/** ，真正的下载在你家电脑上进行，两者用 Cloudflare 免费隧道连起来：
+
+1. 家里电脑装一次 cloudflared：`winget install Cloudflare.cloudflared`（Mac：`brew install cloudflared`）
+2. 双击 `启动.bat`（或 `./start.sh`）——检测到 cloudflared 会自动开隧道，窗口里打印一条专属链接和二维码
+3. 手机或电脑打开那条链接（或扫码）：网页会自动连上你家电脑并登录，以后直接开 `jyb635050-ai.github.io/glint` 就行
+4. 家里电脑重启 Glint 后外网地址会变，重新打开新打印的链接即可；电脑没开时网页会提示「还没连上你的电脑」
+
+专属链接里带着访问口令（放在 `#` 后面，不会发给任何服务器），别发给不想让他用的人。
+
+## 部署到云端（Hugging Face Docker Space，需要 PRO 付费）
 
 1. 在 huggingface.co 注册账号，Settings → Access Tokens 建一个 **Write** 权限的令牌
 2. `pip install huggingface_hub`，设环境变量 `HF_TOKEN=<令牌>`
 3. `python deploy/hf_deploy.py`——会建好 Space、随机生成访问口令（只打印一次）并上传代码
 4. 几分钟后打开 `https://<用户名>-glint.hf.space`
 
-云端在机房网络里，YouTube 常会要求「登录验证」，这时会如实提示平台限制；本机版不受影响。
+2026-10 起 Hugging Face 免费账号不能再跑 Docker Space（建 Space 时报 402，要 PRO）。云端在机房网络里，YouTube 常会要求「登录验证」，这时会如实提示平台限制；家里电脑版不受影响。
 
 ## 开发与验收
 

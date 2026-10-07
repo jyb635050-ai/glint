@@ -376,6 +376,8 @@ def items_of(entry):
         it = {'id': f'v{i}', 'kind': 'video' if qs else 'audio', 'thumbnail': thumb_path(th)}
         if qs:
             it['qualities'] = qs
+        if 'info' in v:
+            it['audio'] = any(f.get('acodec') not in (None, 'none', '') for f in v['info'].get('formats') or [])
         if 'info' in v and v['info'].get('duration'):
             it['duration'] = v['info']['duration']
         if len(entry['videos']) > 1 and 'info' in v:

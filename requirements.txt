@@ -1,3 +1,4 @@
 fastapi>=0.115
 uvicorn>=0.30
 yt-dlp[default]>=2026.8.19
+qrcode>=7.4
